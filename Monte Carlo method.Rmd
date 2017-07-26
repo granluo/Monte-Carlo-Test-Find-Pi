@@ -1,0 +1,177 @@
+---
+title: "Monte Carlo method"
+author: "Gran Luo"
+date: "July 25, 2017"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(
+  fig.width = 12,
+  fig.height = 8,
+  fig.path = 'Figs/',
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+#library
+library(ggplot2)
+library(grid)
+library(gridExtra)
+```
+```{r}
+# Clean environment and set the seed
+set.seed(88)
+rm(list = ls())
+```
+
+In this project, I will use Monte Carlo method to calculate Pi. I will create a canva with the size of 1*1, x-axis and y-axis both from -0.5 to 0.5. And a circle, centered in (0,0), with diameter of 1 will be drawn in the canva. Then I will uniformly create random points and then drop them on the canva. All points dropped inside the circle will be colored azure and the others dropped outside the circle will be colored red. Since these points are uniformly distributed, the number of points inside the circle should be a proportion of the number of all points, and so we can calculate Pi based on this proportion. 
+
+First, I will draw the circle.
+```{r}
+
+circleFun <- function(center = c(0, 0),
+                      diameter = 1,
+                      npoints = 100) {
+  r = diameter / 2
+  tt <- seq(0, 2 * pi, length.out = npoints)
+  print(tt)
+  xx <- center[1] + r * cos(tt)
+  yy <- center[2] + r * sin(tt)
+  return(data.frame(x = xx, y = yy))
+}
+
+dat <- circleFun(c(0, 0), 1, npoints = 3000)
+#geom_path will do open circles, geom_polygon will do filled circles
+
+draw_circle <- ggplot() + geom_path(data = dat, aes(x, y)) 
+
+print(draw_circle)
+```
+
+This function is to generate a sepecific number of points in an area of square with
+the length of the circle's diameter.
+
+```{r, echo = True}
+
+create_points <- function(nump =100, center =c(0,0),diameter = 1){
+  x <-  runif(nump,center[1]-0.5*diameter, center[1]+0.5*diameter)
+  y <-  runif(nump,center[2]-0.5*diameter, center[2]+0.5*diameter)
+  incircle <- c()
+  for (i in seq(1, length(x), 1)) {
+    incircle <-
+      c(incircle, (sqrt(x[i] ** 2 + y[i] ** 2) <= 0.5))
+  }
+  points <-  data.frame(xaxis = x, yaxis = y,incircle = incircle)
+  return(points)
+}
+
+```
+
+The number of points will be dropped. I set 40000 points.
+```{r}
+num_points = 40000
+```
+
+```{r}
+#To save the legend of a ggplot, this function is orginally from 
+#https://stackoverflow.com/questions/12539348/ggplot-separate-legend-and-plot
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  print (tmp)
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  print (sapply(tmp$grobs, function(x) x$name))
+  print (leg)
+  # print (tmp$grobs)
+  legend <- tmp$grobs[[leg]]
+  
+  return(legend)
+}
+```
+
+
+We can find the distribution of points from 100 to 40000. Points outside the circle are red and inside are azure.
+```{r}
+points <- create_points(num_points)
+
+drop_pointsnum <- function(num){
+  return (draw_circle + geom_point(data = points[1:num,], aes(xaxis, yaxis,color = incircle))+ggtitle(paste(toString(num),'points'))+
+  theme(legend.position="none"))
+}
+drop_points100 <- drop_pointsnum(100)
+drop_points1000 <-  drop_pointsnum(1000)
+drop_points10000 <- drop_pointsnum(10000)
+drop_points40000 <- drop_pointsnum(40000)
+grid.arrange(drop_points100, drop_points1000, drop_points10000, drop_points40000, ncol=2,widths = c(2, 2), heights = c(2, 2))
+```
+
+
+```{r}
+#Calculate Pi
+cal_pi <- function(df){
+  return(sum(df$incircle)/nrow(df)*4)
+}
+# Initialize a datafram of pi calculation
+pi_collection <-data.frame(num_points = integer(),pi = double(),error = double())
+
+# For every 100 points, calculate a pi for seeing the distributino later.
+for(num in seq(100,num_points,100)){
+  get_pi = cal_pi(points[1:num,])
+  pi_collection[nrow(pi_collection)+1,] = c(num,get_pi,abs(get_pi-pi))
+  
+}
+```
+
+I calculated the pi for every 100 points and the pi and the number of points used to calculat this pi are plotted on the graph below and are connected, so this is the line of Pi calculated by Mento Carlo method, and the horizon line is the actual Pi. We can find the curve line is going close to the horizon line. The calculated pie could be higher or lower than the actual pi but it is getting close to it with the number points increasing.
+
+```{r}
+
+ggplot(pi_collection,aes(x=num_points,y=pi))+
+  geom_path()+
+  geom_hline(yintercept = pi)
+
+```
+
+The graph below shows the error of the calculated pie. In other words, the y axis is the distances between the actual pi and the calculated pi. Since points are uniformly distributed, we can find even the line is getting close to 0 when the number of points go over 30000, it is still bouncing on it. 
+
+```{r}
+
+ggplot(pi_collection,aes(x=num_points,y=error))+
+  geom_path()+
+  geom_hline(yintercept = 0)
+```
+
+However, if we create another set of 40000 points, we may have a different result.
+The graph below is generated by another 40000 uniformally distributed points, but 
+we can see when the number of points goes up, the error is increasing at the end 
+since the points are still randomly picked and points are not under control. Even
+so, the error is no more than 0.015. I think the result is not exactly right, but 
+it is very close.
+
+```{r}
+set.seed(107)
+points <- create_points(num_points)
+
+#  clean the dataframe
+pi_collection <-data.frame(num_points = integer(),pi = double(),error = double())
+
+# For every 100 points, calculate a pi for seeing the distributino later.
+for(num in seq(100,num_points,100)){
+  get_pi = cal_pi(points[1:num,])
+  pi_collection[nrow(pi_collection)+1,] = c(num,get_pi,abs(get_pi-pi))
+  
+}
+ggplot(pi_collection,aes(x=num_points,y=error))+
+  geom_path()+
+  geom_hline(yintercept = 0)
+```
+
+
+
+
+# Conclusion
+
+Monte Carlo simulation is a great method to calculate the pi. From graphs above, we can find the error could be lower than 0.01. However, this approach still have drawbacks for the calculation. Since all points are uniformly distributed, a general trend could be found with the increasing number of points dropping on the canva, but if we want to find the exact number of pi, the method might not be able to do it. 
