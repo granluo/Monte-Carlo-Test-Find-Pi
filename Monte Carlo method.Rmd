@@ -7,7 +7,7 @@ output: html_document
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(
-  fig.width = 12,
+  fig.width = 8,
   fig.height = 8,
   fig.path = 'Figs/',
   echo = FALSE,
@@ -38,7 +38,6 @@ circleFun <- function(center = c(0, 0),
                       npoints = 100) {
   r = diameter / 2
   tt <- seq(0, 2 * pi, length.out = npoints)
-  print(tt)
   xx <- center[1] + r * cos(tt)
   yy <- center[2] + r * sin(tt)
   return(data.frame(x = xx, y = yy))
@@ -52,11 +51,11 @@ draw_circle <- ggplot() + geom_path(data = dat, aes(x, y))
 print(draw_circle)
 ```
 
-This function is to generate a sepecific number of points in an area of square with
-the length of the circle's diameter.
 
-```{r, echo = True}
 
+```{r}
+#This function is to generate a sepecific number of points in an area of square with
+#the length of the circle's diameter.
 create_points <- function(nump =100, center =c(0,0),diameter = 1){
   x <-  runif(nump,center[1]-0.5*diameter, center[1]+0.5*diameter)
   y <-  runif(nump,center[2]-0.5*diameter, center[2]+0.5*diameter)
@@ -71,7 +70,9 @@ create_points <- function(nump =100, center =c(0,0),diameter = 1){
 
 ```
 
-The number of points will be dropped. I set 40000 points.
+Since Monte Carlo simulation requests a large number of points, I will set the 
+number of points to be 40000, and make sure it is large enough to cover the graph.
+
 ```{r}
 num_points = 40000
 ```
@@ -94,6 +95,7 @@ get_legend<-function(myggplot){
 
 
 We can find the distribution of points from 100 to 40000. Points outside the circle are red and inside are azure.
+The graph is getting dense while the number of points dropping on the canva increase from 100 to 40000.
 ```{r}
 points <- create_points(num_points)
 
@@ -125,7 +127,11 @@ for(num in seq(100,num_points,100)){
 }
 ```
 
-I calculated the pi for every 100 points and the pi and the number of points used to calculat this pi are plotted on the graph below and are connected, so this is the line of Pi calculated by Mento Carlo method, and the horizon line is the actual Pi. We can find the curve line is going close to the horizon line. The calculated pie could be higher or lower than the actual pi but it is getting close to it with the number points increasing.
+I calculated the pi for every 100 points. Since the whole canva is covered by points, so the proportion of the area of circle to the area of square should equal to the number of points in the circle to the number of all points.
+
+$$\frac{pi*r^2}{(2*r)^2} = \frac{points\ in\ the\ circle}{all\ points}\ \  => pi = \frac{4 * points\ in\ the\ circle}{all\ points}$$
+
+The proportion of 4 times points in the circle to all the points are ploted on the graph below and are connected, so this is the line of Pi calculated by Mento Carlo method, and the horizon line is the actual Pi. We can find the curve line is going close to the horizon line. The calculated pie could be higher or lower than the actual pi but it is getting close to it with the number points increasing.
 
 ```{r}
 
